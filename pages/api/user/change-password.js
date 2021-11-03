@@ -1,5 +1,5 @@
 import { getSession } from 'next-auth/client';
-import { verifyPassword } from '../../../lib/auth';
+import { verifyPassword, hashPassword } from '../../../lib/auth';
 import { connectDatabase } from '../../../lib/db';
 
 async function handler(req, res) {
@@ -16,14 +16,14 @@ async function handler(req, res) {
 
   const oldPassword = req.body.oldPassword;
   const newPassword = req.body.newPassword;
-  const userEmail = session.email;
+  const userEmail = session.user.email;
 
   const client = await connectDatabase();
   const userCollction = client.db().collection('users');
   const user = await userCollction.findOne({ email: userEmail });
 
   if (!user) {
-    res.status(404).json({ message: 'User do not exist' });
+    res.status(404).json({ message: 'User not found' });
     client.close();
     return;
   }
@@ -35,7 +35,7 @@ async function handler(req, res) {
     return;
   }
 
-  const hashedPassword = await hashedPassword(newPassword);
+  const hashedPassword = await hashPassword(newPassword);
 
   const result = await userCollction.updateOne(
     { email: userEmail },
